@@ -28,7 +28,7 @@ class User {
   static async findByEmail(email) {
     try {
       const user = await knex
-        .select("id", "email", "name", "role")
+        .select("*")
         .from("users")
         .where("email", email)
         .first();

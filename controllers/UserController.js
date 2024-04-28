@@ -1,5 +1,9 @@
 const User = require("../models/User");
 const PasswordToken = require("../models/PasswordToken");
+const bcrypt = require("bcrypt");
+const JWT = require("jsonwebtoken");
+
+const secret = process.env.JWT_SECRET;
 
 class UserController {
   async index(req, res) {
@@ -109,6 +113,30 @@ class UserController {
       passwordToken.token
     );
     res.status(200).json({ msg: "Password changed!" });
+  }
+
+  async login(req, res) {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ err: "No email or password provided!" });
+    }
+
+    const user = await User.findByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({ err: "User not found!" });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password);
+
+    if (!isValid) {
+      return res.status(406).json({ err: "Invalid password!" });
+    }
+
+    const token = JWT.sign({ email: user.email, role: user.role }, secret);
+
+    res.status(200).json({ token });
   }
 }
 
