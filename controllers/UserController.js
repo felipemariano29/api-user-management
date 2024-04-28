@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const PasswordToken = require("../models/PasswordToken");
 
 class UserController {
   async index(req, res) {
@@ -64,6 +65,50 @@ class UserController {
     }
 
     res.status(200).json({ msg: user.msg });
+  }
+
+  async recoverPassword(req, res) {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ err: "No email provided!" });
+    }
+
+    const user = await User.findByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({ err: "User not found!" });
+    }
+
+    const token = await PasswordToken.create(email);
+
+    if (!token.status) {
+      return res.status(406).json({ err: token.err });
+    }
+
+    res.status(200).json(token);
+  }
+
+  async changePassword(req, res) {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ err: "No token or password provided!" });
+    }
+
+    const passwordToken = await PasswordToken.validate(token);
+    const isValid = passwordToken.status;
+
+    if (!isValid) {
+      return res.status(406).json({ err: passwordToken.err });
+    }
+
+    await User.changePassword(
+      passwordToken.userId,
+      password,
+      passwordToken.token
+    );
+    res.status(200).json({ msg: "Password changed!" });
   }
 }
 

@@ -1,5 +1,6 @@
 const knex = require("../database/connection");
 const bcrypt = require("bcrypt");
+const PasswordToken = require("./PasswordToken");
 
 class User {
   static async findAll() {
@@ -17,6 +18,19 @@ class User {
         .select("id", "email", "name", "role")
         .from("users")
         .where("id", id)
+        .first();
+      return user;
+    } catch (err) {
+      console.log("Error while finding user: " + err);
+    }
+  }
+
+  static async findByEmail(email) {
+    try {
+      const user = await knex
+        .select("id", "email", "name", "role")
+        .from("users")
+        .where("email", email)
         .first();
       return user;
     } catch (err) {
@@ -78,6 +92,24 @@ class User {
     } catch (err) {
       console.log("Error while deleting user: " + err);
       return { status: false, err: "Error while deleting user!" };
+    }
+  }
+
+  static async changePassword(id, newPassword, token) {
+    const user = await this.findById(id);
+
+    if (!user) {
+      return { status: false, err: "User not found!" };
+    }
+
+    try {
+      const hash = await bcrypt.hash(newPassword, 10);
+      await knex.update({ password: hash }).table("users").where("id", id);
+      await PasswordToken.setUsed(token.token);
+      return { status: true, msg: "Password changed!" };
+    } catch (err) {
+      console.log("Error while changing password: " + err);
+      return { status: false, err: "Error while changing password!" };
     }
   }
 }
