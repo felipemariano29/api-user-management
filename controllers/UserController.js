@@ -25,13 +25,17 @@ class UserController {
   async create(req, res) {
     const { email, name, password } = req.body;
 
-    if (!email || !name || !password) {
-      const errMessages = [];
-      if (!email) errMessages.push("No email provided!");
-      if (!name) errMessages.push("No name provided!");
-      if (!password) errMessages.push("No password provided!");
+    const missingFields = [];
+    if (!email || email.trim() === "") missingFields.push("Email");
+    if (!name || name.trim() === "") missingFields.push("Name");
+    if (!password || password.trim() === "") missingFields.push("Password");
 
-      return res.status(400).json({ err: errMessages.join(" ") });
+    if (missingFields.length > 0) {
+      return res
+        .status(400)
+        .json({
+          err: `${missingFields.join(", ")} fields are missing or empty`,
+        });
     }
 
     const emailExists = await User.findEmail(email);
